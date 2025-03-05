@@ -119,9 +119,20 @@ class Vector:
         unit = vec.get_normalized()
         return unit.multiply(self.dot(unit))
 
+class mainMenu:
+    def __init__(self, frame):
+        self.frame = frame
+
+
 def startButton():
-    pass
+    frame.set_canvas_background("lightblue")
+
+def draw_handler(canvas):
+    canvas.draw_text('Menu', (640, 360), 50, 'Red')
 
 frame = simplegui.create_frame('Game', 1280, 720)
+frame.set_draw_handler(draw_handler)
+frame.set_canvas_background("lightyellow")
 button1 = frame.add_button('Start', startButton, 200)
 frame.start()
+
