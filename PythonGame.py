@@ -119,20 +119,29 @@ class Vector:
         unit = vec.get_normalized()
         return unit.multiply(self.dot(unit))
 
-class mainMenu:
-    def __init__(self, frame):
-        self.frame = frame
+class interaction:
+    #Change init args to include enemies player etc
+    def __init__(self):
+        self.state = "mainMenu"
+    def draw_handler(self, canvas):
+        if self.state == "mainMenu":
+            frame.set_canvas_background("lightyellow")
+            canvas.draw_text('Menu', (640, 360), 50, 'Red')
+            canvas.draw_text('Press Start', (640, 400), 28, 'Red')
 
+        elif self.state == "game":
+            frame.set_canvas_background("lightblue")
+            #insert game run code here
 
-def startButton():
-    frame.set_canvas_background("lightblue")
+    def button_handler(self): # Start Button Handler
+        if self.state == "mainMenu":
+            self.state = "game"
 
-def draw_handler(canvas):
-    canvas.draw_text('Menu', (640, 360), 50, 'Red')
 
 frame = simplegui.create_frame('Game', 1280, 720)
-frame.set_draw_handler(draw_handler)
-frame.set_canvas_background("lightyellow")
-button1 = frame.add_button('Start', startButton, 200)
+interact = interaction()
+frame.add_button("Start", interact.button_handler, 200)
+frame.set_draw_handler(interact.draw_handler)
+# ^^^ You can only have one draw handler, so change state within interaction class
 frame.start()
 
