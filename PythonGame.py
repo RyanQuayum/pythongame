@@ -118,3 +118,10 @@ class Vector:
     def get_proj(self, vec):
         unit = vec.get_normalized()
         return unit.multiply(self.dot(unit))
+
+def startButton():
+    pass
+
+frame = simplegui.create_frame('Game', 1280, 720)
+button1 = frame.add_button('Start', startButton, 200)
+frame.start()
