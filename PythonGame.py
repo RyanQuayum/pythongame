@@ -119,29 +119,85 @@ class Vector:
         unit = vec.get_normalized()
         return unit.multiply(self.dot(unit))
 
-class interaction:
-    #Change init args to include enemies player etc
-    def __init__(self):
-        self.state = "mainMenu"
-    def draw_handler(self, canvas):
-        if self.state == "mainMenu":
-            frame.set_canvas_background("lightyellow")
-            canvas.draw_text('Menu', (640, 360), 50, 'Red')
-            canvas.draw_text('Press Start', (640, 400), 28, 'Red')
 
-        elif self.state == "game":
-            frame.set_canvas_background("lightblue")
-            #insert game run code here
+
+
+class Player:
+    def __init__(self, pos):
+        self.pos = pos
+        self.vel = Vector()
+        self.img = simplegui.load_image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Solid_red.svg/1024px-Solid_red.svg.png")
+        self.centre = (512,512)
+        self.dims = (1024,1024)
+
+    def draw(self, canvas):
+        canvas.draw_image(self.img, self.centre, self.dims, self.pos.get_p(), (64,64))
+
+    def update(self):
+        self.pos.add(self.vel)
+        self.vel *= 0.90
+
+
+
+class Keyboard:
+    def __init__(self):
+        self.right = False
+        self.left = False
+        self.space = False
+    def keyDown(self, key):
+        if key == simplegui.KEY_MAP['right']:
+            self.right = True
+        if key == simplegui.KEY_MAP['left']:
+            self.left = True
+        if key == simplegui.KEY_MAP['space']:
+            self.space = True
+    def keyUp(self, key):
+        if key == simplegui.KEY_MAP['right']:
+            self.right = False
+        if key == simplegui.KEY_MAP['left']:
+            self.left = False
+        if key == simplegui.KEY_MAP['space']:
+            self.space = False
+
+
+
+
+class interaction:
+    def __init__(self, player, keyboard):
+        self.player = player
+        self.keyboard = keyboard
+        self.state = "mainMenu"
+    def update(self):
+        if self.keyboard.right:
+            self.player.vel.add(Vector(1, 0))
+        if self.keyboard.left:
+            self.player.vel.add(Vector(-1, 0))
 
     def button_handler(self): # Start Button Handler
         if self.state == "mainMenu":
             self.state = "game"
 
 
+kbd = Keyboard()
 frame = simplegui.create_frame('Game', 1280, 720)
-interact = interaction()
+player = Player(Vector(640,360))
+interact = interaction(player, kbd)
+
+def draw(canvas):
+    if interact.state == "mainMenu":
+        frame.set_canvas_background("lightyellow")
+        canvas.draw_text('Menu', (540, 300), 50, 'Red')
+        canvas.draw_text('Press Start', (540, 350), 28, 'Red')
+    elif interact.state == "game":
+        frame.set_canvas_background("lightblue")
+        player.draw(canvas)
+        interact.update()
+        player.update()
+
+
 frame.add_button("Start", interact.button_handler, 200)
-frame.set_draw_handler(interact.draw_handler)
-# ^^^ You can only have one draw handler, so change state within interaction class
+frame.set_draw_handler(draw)
+frame.set_keydown_handler(kbd.keyDown)
+frame.set_keyup_handler(kbd.keyUp)
 frame.start()
 
