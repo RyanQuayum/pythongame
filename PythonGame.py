@@ -144,6 +144,8 @@ class Player:
 
         self.centre = (290,43)
         self.dims = (580,86)
+        self.frameTime = 0
+        self.Interval = 5
 
     def draw(self, canvas):
         centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
@@ -153,13 +155,15 @@ class Player:
     def update(self):
         self.pos.add(self.vel)
         self.vel *= 0.90
-        time.sleep(0.06)
-        self.spritesheet.spriteFrame[0] += 1
-        if self.spritesheet.spriteFrame[0] >= self.spritesheet.column:
-            self.spritesheet.spriteFrame[0] = 0
-            self.spritesheet.spriteFrame[1] += 1
-        if self.spritesheet.spriteFrame[1] >= self.spritesheet.row:
-            self.spritesheet.spriteFrame[1] = 0
+        self.frameTime += 1
+        if self.frameTime >= self.Interval:
+            self.frameTime = 0
+            self.spritesheet.spriteFrame[0] += 1
+            if self.spritesheet.spriteFrame[0] >= self.spritesheet.column:
+                self.spritesheet.spriteFrame[0] = 0
+                self.spritesheet.spriteFrame[1] += 1
+            if self.spritesheet.spriteFrame[1] >= self.spritesheet.row:
+                self.spritesheet.spriteFrame[1] = 0
 
 
 class Keyboard:
@@ -208,9 +212,9 @@ class Game:
 
     def keyboardUpdate(self):
         if self.kbd.right:
-            self.player.vel.add(Vector(1, 0))
+            self.player.vel.add(Vector(0.5, 0))
         if self.kbd.left:
-            self.player.vel.add(Vector(-1, 0))
+            self.player.vel.add(Vector(-0.5, 0))
 
     def draw(self, canvas):
         if self.state == "mainMenu":
