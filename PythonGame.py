@@ -145,7 +145,7 @@ class Player:
         self.centre = (290,43)
         self.dims = (580,86)
         self.frameTime = 0
-        self.Interval = 5
+        self.Interval = 6
 
     def draw(self, canvas):
         centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
