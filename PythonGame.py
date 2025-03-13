@@ -1,3 +1,5 @@
+from math import gamma
+
 import SimpleGUICS2Pygame.simpleguics2pygame as simplegui, math, time
 class Vector:
     def __init__(self, x=0, y=0):
@@ -119,24 +121,45 @@ class Vector:
         unit = vec.get_normalized()
         return unit.multiply(self.dot(unit))
 
+class Spritesheet:
+    def __init__(self, img, row, column):
+        self.img = simplegui.load_image(img)
+        self.width = self.img.get_width()
+        self.height = self.img.get_height()
+        self.row = row
+        self.column = column
+        self.totalSprites = row * column
+        self.spriteWidthHeight = (self.width/column, self.height/row)
+        self.spriteCentre = (self.spriteWidthHeight[0] / 2, self.height - (self.spriteWidthHeight[1] / 2))
+        self.spriteFrame = [0,0]
+
 
 
 
 class Player:
-    def __init__(self, pos):
+    def __init__(self, pos, spritesheet):
         self.pos = pos
         self.vel = Vector()
-        self.img = simplegui.load_image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Solid_red.svg/1024px-Solid_red.svg.png")
-        self.centre = (512,512)
-        self.dims = (1024,1024)
+        self.spritesheet = spritesheet
+
+        self.centre = (290,43)
+        self.dims = (580,86)
 
     def draw(self, canvas):
-        canvas.draw_image(self.img, self.centre, self.dims, self.pos.get_p(), (64,64))
+        centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
+        centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
+        canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
 
     def update(self):
         self.pos.add(self.vel)
         self.vel *= 0.90
-
+        time.sleep(0.06)
+        self.spritesheet.spriteFrame[0] += 1
+        if self.spritesheet.spriteFrame[0] >= self.spritesheet.column:
+            self.spritesheet.spriteFrame[0] = 0
+            self.spritesheet.spriteFrame[1] += 1
+        if self.spritesheet.spriteFrame[1] >= self.spritesheet.row:
+            self.spritesheet.spriteFrame[1] = 0
 
 
 class Keyboard:
@@ -159,45 +182,50 @@ class Keyboard:
         if key == simplegui.KEY_MAP['space']:
             self.space = False
 
-
-
-
 class interaction:
-    def __init__(self, player, keyboard):
-        self.player = player
-        self.keyboard = keyboard
+    def __init__(self):
+        pass
+
+
+class Game:
+    def __init__(self):
+        self.frame = simplegui.create_frame('Game', 1280, 720)
+        self.playersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
         self.state = "mainMenu"
-    def update(self):
-        if self.keyboard.right:
-            self.player.vel.add(Vector(1, 0))
-        if self.keyboard.left:
-            self.player.vel.add(Vector(-1, 0))
+        self.kbd = Keyboard()
+        self.player = Player(Vector(640,360), self.playersheet)
+        self.frame.add_button("Start", self.button_handler, 200)
+        self.frame.set_draw_handler(self.draw)
+        self.frame.set_keydown_handler(self.kbd.keyDown)
+        self.frame.set_keyup_handler(self.kbd.keyUp)
+
+    def gamestart(self):
+        self.frame.start()
 
     def button_handler(self): # Start Button Handler
         if self.state == "mainMenu":
             self.state = "game"
 
+    def keyboardUpdate(self):
+        if self.kbd.right:
+            self.player.vel.add(Vector(1, 0))
+        if self.kbd.left:
+            self.player.vel.add(Vector(-1, 0))
 
-kbd = Keyboard()
-frame = simplegui.create_frame('Game', 1280, 720)
-player = Player(Vector(640,360))
-interact = interaction(player, kbd)
+    def draw(self, canvas):
+        if self.state == "mainMenu":
+            self.frame.set_canvas_background("lightyellow")
+            canvas.draw_text('Menu', (540, 300), 50, 'Red')
+            canvas.draw_text('Press Start', (540, 350), 28, 'Red')
 
-def draw(canvas):
-    if interact.state == "mainMenu":
-        frame.set_canvas_background("lightyellow")
-        canvas.draw_text('Menu', (540, 300), 50, 'Red')
-        canvas.draw_text('Press Start', (540, 350), 28, 'Red')
-    elif interact.state == "game":
-        frame.set_canvas_background("lightblue")
-        player.draw(canvas)
-        interact.update()
-        player.update()
+        elif self.state == "game":
+            self.frame.set_canvas_background("lightblue")
+            self.player.draw(canvas)
+            self.keyboardUpdate()
+            self.player.update()
 
 
-frame.add_button("Start", interact.button_handler, 200)
-frame.set_draw_handler(draw)
-frame.set_keydown_handler(kbd.keyDown)
-frame.set_keyup_handler(kbd.keyUp)
-frame.start()
+
+newgame = Game()
+newgame.gamestart()
 
