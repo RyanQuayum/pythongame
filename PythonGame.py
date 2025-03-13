@@ -1,3 +1,5 @@
+from math import gamma
+
 import SimpleGUICS2Pygame.simpleguics2pygame as simplegui, math, time
 class Vector:
     def __init__(self, x=0, y=0):
@@ -119,29 +121,111 @@ class Vector:
         unit = vec.get_normalized()
         return unit.multiply(self.dot(unit))
 
-class interaction:
-    #Change init args to include enemies player etc
-    def __init__(self):
-        self.state = "mainMenu"
-    def draw_handler(self, canvas):
-        if self.state == "mainMenu":
-            frame.set_canvas_background("lightyellow")
-            canvas.draw_text('Menu', (640, 360), 50, 'Red')
-            canvas.draw_text('Press Start', (640, 400), 28, 'Red')
+class Spritesheet:
+    def __init__(self, img, row, column):
+        self.img = simplegui.load_image(img)
+        self.width = self.img.get_width()
+        self.height = self.img.get_height()
+        self.row = row
+        self.column = column
+        self.totalSprites = row * column
+        self.spriteWidthHeight = (self.width/column, self.height/row)
+        self.spriteCentre = (self.spriteWidthHeight[0] / 2, self.height - (self.spriteWidthHeight[1] / 2))
+        self.spriteFrame = [0,0]
 
-        elif self.state == "game":
-            frame.set_canvas_background("lightblue")
-            #insert game run code here
+
+
+
+class Player:
+    def __init__(self, pos, spritesheet):
+        self.pos = pos
+        self.vel = Vector()
+        self.spritesheet = spritesheet
+
+        self.centre = (290,43)
+        self.dims = (580,86)
+
+    def draw(self, canvas):
+        centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
+        centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
+        canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
+
+    def update(self):
+        self.pos.add(self.vel)
+        self.vel *= 0.90
+        time.sleep(0.06)
+        self.spritesheet.spriteFrame[0] += 1
+        if self.spritesheet.spriteFrame[0] >= self.spritesheet.column:
+            self.spritesheet.spriteFrame[0] = 0
+            self.spritesheet.spriteFrame[1] += 1
+        if self.spritesheet.spriteFrame[1] >= self.spritesheet.row:
+            self.spritesheet.spriteFrame[1] = 0
+
+
+class Keyboard:
+    def __init__(self):
+        self.right = False
+        self.left = False
+        self.space = False
+    def keyDown(self, key):
+        if key == simplegui.KEY_MAP['right']:
+            self.right = True
+        if key == simplegui.KEY_MAP['left']:
+            self.left = True
+        if key == simplegui.KEY_MAP['space']:
+            self.space = True
+    def keyUp(self, key):
+        if key == simplegui.KEY_MAP['right']:
+            self.right = False
+        if key == simplegui.KEY_MAP['left']:
+            self.left = False
+        if key == simplegui.KEY_MAP['space']:
+            self.space = False
+
+class interaction:
+    def __init__(self):
+        pass
+
+
+class Game:
+    def __init__(self):
+        self.frame = simplegui.create_frame('Game', 1280, 720)
+        self.playersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
+        self.state = "mainMenu"
+        self.kbd = Keyboard()
+        self.player = Player(Vector(640,360), self.playersheet)
+        self.frame.add_button("Start", self.button_handler, 200)
+        self.frame.set_draw_handler(self.draw)
+        self.frame.set_keydown_handler(self.kbd.keyDown)
+        self.frame.set_keyup_handler(self.kbd.keyUp)
+
+    def gamestart(self):
+        self.frame.start()
 
     def button_handler(self): # Start Button Handler
         if self.state == "mainMenu":
             self.state = "game"
 
+    def keyboardUpdate(self):
+        if self.kbd.right:
+            self.player.vel.add(Vector(1, 0))
+        if self.kbd.left:
+            self.player.vel.add(Vector(-1, 0))
 
-frame = simplegui.create_frame('Game', 1280, 720)
-interact = interaction()
-frame.add_button("Start", interact.button_handler, 200)
-frame.set_draw_handler(interact.draw_handler)
-# ^^^ You can only have one draw handler, so change state within interaction class
-frame.start()
+    def draw(self, canvas):
+        if self.state == "mainMenu":
+            self.frame.set_canvas_background("lightyellow")
+            canvas.draw_text('Menu', (540, 300), 50, 'Red')
+            canvas.draw_text('Press Start', (540, 350), 28, 'Red')
+
+        elif self.state == "game":
+            self.frame.set_canvas_background("lightblue")
+            self.player.draw(canvas)
+            self.keyboardUpdate()
+            self.player.update()
+
+
+
+newgame = Game()
+newgame.gamestart()
 
