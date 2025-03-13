@@ -141,16 +141,20 @@ class Player:
         self.pos = pos
         self.vel = Vector()
         self.spritesheet = spritesheet
-
+        self.playerState = "idle"
         self.centre = (290,43)
         self.dims = (580,86)
         self.frameTime = 0
         self.Interval = 6
 
-    def draw(self, canvas):
-        centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
-        centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
-        canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
+    def draw(self, canvas, state):
+        if state == "idle":
+            centre = self.spritesheet.spriteCentre
+            canvas.draw_image(self.spritesheet.img, centre, self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
+        elif state == "walkRight":
+            centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
+            centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
+            canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
 
     def update(self):
         self.pos.add(self.vel)
@@ -195,7 +199,7 @@ class Game:
     def __init__(self):
         self.frame = simplegui.create_frame('Game', 1280, 720)
         self.playersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
-        self.state = "mainMenu"
+        self.gameState = "mainMenu"
         self.kbd = Keyboard()
         self.player = Player(Vector(640,360), self.playersheet)
         self.frame.add_button("Start", self.button_handler, 200)
@@ -207,24 +211,29 @@ class Game:
         self.frame.start()
 
     def button_handler(self): # Start Button Handler
-        if self.state == "mainMenu":
-            self.state = "game"
+        if self.gameState == "mainMenu":
+            self.gameState = "game"
 
     def keyboardUpdate(self):
         if self.kbd.right:
             self.player.vel.add(Vector(0.5, 0))
+            self.player.playerState = "walkRight"
         if self.kbd.left:
             self.player.vel.add(Vector(-0.5, 0))
+            self.player.playerState = "walkRight"
+        elif not self.kbd.left and not self.kbd.right:
+            self.player.playerState = "idle"
+            print("Hello")
 
     def draw(self, canvas):
-        if self.state == "mainMenu":
+        if self.gameState == "mainMenu":
             self.frame.set_canvas_background("lightyellow")
             canvas.draw_text('Menu', (540, 300), 50, 'Red')
             canvas.draw_text('Press Start', (540, 350), 28, 'Red')
 
-        elif self.state == "game":
+        elif self.gameState == "game":
             self.frame.set_canvas_background("lightblue")
-            self.player.draw(canvas)
+            self.player.draw(canvas, self.player.playerState)
             self.keyboardUpdate()
             self.player.update()
 
