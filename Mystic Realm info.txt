@@ -1,0 +1,26 @@
+https://craftpix.net/freebies/free-knight-character-sprites-pixel-art/
+
+Mystic Realms
+Sprite adventure. Character moves through areas, picking up collectables and fighting enemies, progressing through levels, item collection, task system, player can attack/shoot projectiles, 2 player?
+
+Classes:
+Game
+-	State variables
+-	Constants
+-	Images (Should it be here?)
+-	Game loop? 
+Player
+-	Score/livesa
+-	Projectiles
+
+Enemies
+-	Different types?
+-	projectiles
+Interaction
+-	Keyboard, player
+-	enemies, terrain 
+Terrain “walls”
+Keyboard/input
+Projectiles
+
+
