@@ -215,6 +215,7 @@ class interaction:
         pass
 
 
+
 class Game:
     def __init__(self):
         self.frame = simplegui.create_frame('Game', 1280, 720)
