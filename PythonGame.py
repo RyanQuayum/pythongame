@@ -137,24 +137,37 @@ class Spritesheet:
 
 
 class Player:
-    def __init__(self, pos, spritesheet):
+    def __init__(self, pos, rightSpritesheet, leftSpriteSheet):
         self.pos = pos
         self.vel = Vector()
-        self.spritesheet = spritesheet
+        self.rightSpritesheet = rightSpritesheet
+        self.leftSpritesheet = leftSpriteSheet
         self.playerState = "idle"
         self.centre = (290,43)
         self.dims = (580,86)
         self.frameTime = 0
-        self.Interval = 6
+        self.Interval = 7
+        self.playerDirection = "Right"
 
     def draw(self, canvas, state):
         if state == "idle":
-            centre = self.spritesheet.spriteCentre
-            canvas.draw_image(self.spritesheet.img, centre, self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
+            if self.playerDirection == "Right":
+                centre = (self.rightSpritesheet.spriteCentre[0] + self.rightSpritesheet.spriteWidthHeight[0], self.rightSpritesheet.spriteCentre[1])
+                canvas.draw_image(self.rightSpritesheet.img, centre, self.rightSpritesheet.spriteWidthHeight, self.pos.get_p(), self.rightSpritesheet.spriteWidthHeight)
+            elif self.playerDirection == "Left":
+                centre = (self.leftSpritesheet.spriteCentre[0] + self.leftSpritesheet.spriteWidthHeight[0], self.leftSpritesheet.spriteCentre[1])
+                canvas.draw_image(self.leftSpritesheet.img, centre, self.leftSpritesheet.spriteWidthHeight, self.pos.get_p(), self.leftSpritesheet.spriteWidthHeight)
+
         elif state == "walkRight":
-            centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
-            centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
-            canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
+            centrex = (self.rightSpritesheet.spriteFrame[0] + 0.5) * self.rightSpritesheet.spriteWidthHeight[0]
+            centrey = (self.rightSpritesheet.spriteFrame[1] + 0.5) * self.rightSpritesheet.spriteWidthHeight[1]
+            canvas.draw_image(self.rightSpritesheet.img, (centrex, centrey), self.rightSpritesheet.spriteWidthHeight, self.pos.get_p(), self.rightSpritesheet.spriteWidthHeight)
+        elif state == "walkLeft":
+            centrex = (self.leftSpritesheet.spriteFrame[0] + 0.5) * self.leftSpritesheet.spriteWidthHeight[0]
+            centrey = (self.leftSpritesheet.spriteFrame[1] + 0.5) * self.leftSpritesheet.spriteWidthHeight[1]
+            canvas.draw_image(self.leftSpritesheet.img, (centrex, centrey), self.leftSpritesheet.spriteWidthHeight, self.pos.get_p(), self.leftSpritesheet.spriteWidthHeight)
+
+
 
     def update(self):
         self.pos.add(self.vel)
@@ -162,12 +175,19 @@ class Player:
         self.frameTime += 1
         if self.frameTime >= self.Interval:
             self.frameTime = 0
-            self.spritesheet.spriteFrame[0] += 1
-            if self.spritesheet.spriteFrame[0] >= self.spritesheet.column:
-                self.spritesheet.spriteFrame[0] = 0
-                self.spritesheet.spriteFrame[1] += 1
-            if self.spritesheet.spriteFrame[1] >= self.spritesheet.row:
-                self.spritesheet.spriteFrame[1] = 0
+            self.rightSpritesheet.spriteFrame[0] += 1
+            self.leftSpritesheet.spriteFrame[0] += 1
+            if self.rightSpritesheet.spriteFrame[0] >= self.rightSpritesheet.column:
+                self.rightSpritesheet.spriteFrame[0] = 0
+                self.rightSpritesheet.spriteFrame[1] += 1
+            if self.rightSpritesheet.spriteFrame[1] >= self.rightSpritesheet.row:
+                self.rightSpritesheet.spriteFrame[1] = 0
+            if self.leftSpritesheet.spriteFrame[0] >= self.leftSpritesheet.column:
+                self.leftSpritesheet.spriteFrame[0] = 0
+                self.leftSpritesheet.spriteFrame[1] += 1
+            if self.leftSpritesheet.spriteFrame[1] >= self.leftSpritesheet.row:
+                self.leftSpritesheet.spriteFrame[1] = 0
+
 
 
 class Keyboard:
@@ -198,11 +218,12 @@ class interaction:
 class Game:
     def __init__(self):
         self.frame = simplegui.create_frame('Game', 1280, 720)
-        self.playersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
+        self.rightPlayersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
+        self.leftPlayersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/newLeftSpritewalksheet.png", 1, 8)
         self.gameState = "mainMenu"
         self.kbd = Keyboard()
-        self.player = Player(Vector(640,360), self.playersheet)
-        self.frame.add_button("Start", self.button_handler, 200)
+        self.player = Player(Vector(640,360), self.rightPlayersheet, self.leftPlayersheet)
+        self.button = self.frame.add_button("Start", self.button_handler, 200)
         self.frame.set_draw_handler(self.draw)
         self.frame.set_keydown_handler(self.kbd.keyDown)
         self.frame.set_keyup_handler(self.kbd.keyUp)
@@ -213,22 +234,27 @@ class Game:
     def button_handler(self): # Start Button Handler
         if self.gameState == "mainMenu":
             self.gameState = "game"
+            self.button.set_text("Menu")
+        elif self.gameState == "game":
+            self.gameState = "mainMenu"
+            self.button.set_text("Start")
 
     def keyboardUpdate(self):
         if self.kbd.right:
             self.player.vel.add(Vector(0.5, 0))
             self.player.playerState = "walkRight"
+            self.player.playerDirection = "Right"
         if self.kbd.left:
             self.player.vel.add(Vector(-0.5, 0))
-            self.player.playerState = "walkRight"
+            self.player.playerState = "walkLeft"
+            self.player.playerDirection = "Left"
         elif not self.kbd.left and not self.kbd.right:
             self.player.playerState = "idle"
-            print("Hello")
 
     def draw(self, canvas):
         if self.gameState == "mainMenu":
             self.frame.set_canvas_background("lightyellow")
-            canvas.draw_text('Menu', (540, 300), 50, 'Red')
+            canvas.draw_text('Mystic Flare', (470, 300), 50, 'Red')
             canvas.draw_text('Press Start', (540, 350), 28, 'Red')
 
         elif self.gameState == "game":
