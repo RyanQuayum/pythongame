@@ -156,6 +156,13 @@ class Player:
         self.Interval = 7
         self.playerDirection = "Right"
 
+    def bottom(self):
+        return self.pos + Vector(0, self.dims[1] / 2)
+    
+    def top(self):
+        return self.pos - Vector(0, self.dims[1] / 2)
+
+
     def draw(self, canvas, state):
 
         if state == "idle":
@@ -219,7 +226,40 @@ class Player:
                 self.leftSpritesheet.spriteFrame[1] += 1
             if self.leftSpritesheet.spriteFrame[1] >= self.leftSpritesheet.row:
                 self.leftSpritesheet.spriteFrame[1] = 0
+class Terrain:
+    def __init__(self, y, xstart, xend, spritesheet, width = 50):
+        self.y = y
+        self.xstart = xstart
+        self.xend = xend
+        self.spritesheet = spritesheet
+        self.width = width
+        self.top = self.y - self.width / 2
+        self.bottom = self.y + self.width / 2
 
+    def hit(self, player):
+        player_bottom = player.bottom()
+        player_top = player.top()
+
+        return(
+            player_bottom.y > self.top and player_top.y < self.bottom and 
+            self.xstart < player_bottom.x and player_bottom.x < self.xend
+        )
+    
+    
+    def iteract_player(self, player):
+        if self.hit(player):
+            player.vel.y = 0
+            player.pos.y = self.top - player.dims[1] / 2
+            return True
+        else:
+            return False
+
+    def draw(self, canvas):
+        centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
+        centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
+
+        canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight,
+                          ((self.xstart + self.xend) /2, self.y), ((self.xend - self.xstart, self.spritesheet.spriteWidthHeight[1])))
 
 
 class Keyboard:
@@ -248,8 +288,26 @@ class Keyboard:
             self.attack = False
 
 class interaction:
-    def __init__(self):
-        pass
+    def __init__(self, terrains, player):
+        self.terrains = terrains
+        self.player = player
+
+    def draw(self, canvas):
+        self.update()
+        for terrain in self.terrains:
+            terrain.draw(canvas)
+        self.player.draw(canvas, self.player.playerState)
+
+    def update(self):
+        self.player.update()
+
+        on_terrain = False
+        for terrain in self.terrains:
+            if terrain.iteract_player(self.player):
+                on_terrain = True
+
+        if not on_terrain:
+            self.player.vel.add(Vector(0, 0.5))
 
 
 
@@ -267,6 +325,12 @@ class Game:
         self.frame.set_draw_handler(self.draw)
         self.frame.set_keydown_handler(self.kbd.keyDown)
         self.frame.set_keyup_handler(self.kbd.keyUp)
+        self.terrain_spritesheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/main/forest-2.png",10,40)
+        #terrain_spritesheet.spriteFrame = [2, 3]
+        self.terrain_ground = Terrain(720, 0, 1280, self.terrain_spritesheet)
+        self.terrain_floating = Terrain(500, 400, 800, self.terrain_spritesheet)
+        self.terrains = [self.terrain_ground, self.terrain_floating]
+        self.interaction = interaction(self.terrains, self.player)
 
     def gamestart(self):
         self.frame.start()
@@ -312,10 +376,14 @@ class Game:
 
         elif self.gameState == "game":
             self.frame.set_canvas_background("lightblue")
+            self.interaction.draw(canvas)
+
+            for terrain in self.terrains:
+                terrain.draw(canvas)
+                
             self.player.draw(canvas, self.player.playerState)
             self.keyboardUpdate()
             self.player.update()
-
 
 
 
