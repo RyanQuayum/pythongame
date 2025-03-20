@@ -281,13 +281,24 @@ class Game:
 
     def keyboardUpdate(self):
         if self.kbd.right:
-            self.player.vel.add(Vector(0.5, 0))
-            self.player.playerState = "walkRight"
-            self.player.playerDirection = "Right"
+            if self.kbd.right and self.kbd.attack:
+                self.player.vel.add(Vector(0.1, 0))
+                self.player.playerState = "attack"
+                self.player.playerDirection = "Right"
+            else:
+                self.player.vel.add(Vector(0.5, 0))
+                self.player.playerState = "walkRight"
+                self.player.playerDirection = "Right"
+
         elif self.kbd.left:
-            self.player.vel.add(Vector(-0.5, 0))
-            self.player.playerState = "walkLeft"
-            self.player.playerDirection = "Left"
+            if self.kbd.left and self.kbd.attack:
+                self.player.vel.add(Vector(-0.1, 0))
+                self.player.playerState = "attack"
+                self.player.playerDirection = "Left"
+            else:
+                self.player.vel.add(Vector(-0.5, 0))
+                self.player.playerState = "walkLeft"
+                self.player.playerDirection = "Left"
         elif self.kbd.attack:
             self.player.playerState = "attack"
         elif not self.kbd.left and not self.kbd.right and not self.player.attackFrame == 0:
@@ -304,7 +315,6 @@ class Game:
             self.player.draw(canvas, self.player.playerState)
             self.keyboardUpdate()
             self.player.update()
-            print(self.player.playerState)
 
 
 
