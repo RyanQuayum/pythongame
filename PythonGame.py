@@ -1,6 +1,6 @@
 from math import gamma
-
 import SimpleGUICS2Pygame.simpleguics2pygame as simplegui, math, time
+
 class Vector:
     def __init__(self, x=0, y=0):
         self.x = x
@@ -129,38 +129,42 @@ class Spritesheet:
         self.row = row
         self.column = column
         self.totalSprites = row * column
-        self.spriteWidthHeight = (self.width/column, self.height/row)
+        self.spriteWidthHeight = (self.width / column, self.height / row)
         self.spriteCentre = (self.spriteWidthHeight[0] / 2, self.height - (self.spriteWidthHeight[1] / 2))
-        self.spriteFrame = [0,0]
-
-
-
+        self.spriteFrame = [0, 0]
 
 class Player:
     def __init__(self, pos, spritesheet):
         self.pos = pos
         self.vel = Vector()
         self.spritesheet = spritesheet
+        self.playerState = "idle"
+        self.centre = (290, 43)
+        self.dims = (580, 86)
+        self.frameTime = 0
+        self.Interval = 6
 
-        self.centre = (290,43)
-        self.dims = (580,86)
-
-    def draw(self, canvas):
-        centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
-        centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
-        canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
+    def draw(self, canvas, state):
+        if state == "idle":
+            centre = self.spritesheet.spriteCentre
+            canvas.draw_image(self.spritesheet.img, centre, self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
+        elif state == "walkRight":
+            centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
+            centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
+            canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight, self.pos.get_p(), self.spritesheet.spriteWidthHeight)
 
     def update(self):
         self.pos.add(self.vel)
         self.vel *= 0.90
-        time.sleep(0.06)
-        self.spritesheet.spriteFrame[0] += 1
-        if self.spritesheet.spriteFrame[0] >= self.spritesheet.column:
-            self.spritesheet.spriteFrame[0] = 0
-            self.spritesheet.spriteFrame[1] += 1
-        if self.spritesheet.spriteFrame[1] >= self.spritesheet.row:
-            self.spritesheet.spriteFrame[1] = 0
-
+        self.frameTime += 1
+        if self.frameTime >= self.Interval:
+            self.frameTime = 0
+            self.spritesheet.spriteFrame[0] += 1
+            if self.spritesheet.spriteFrame[0] >= self.spritesheet.column:
+                self.spritesheet.spriteFrame[0] = 0
+                self.spritesheet.spriteFrame[1] += 1
+            if self.spritesheet.spriteFrame[1] >= self.spritesheet.row:
+                self.spritesheet.spriteFrame[1] = 0
 
 class Keyboard:
     def __init__(self):
@@ -186,46 +190,71 @@ class interaction:
     def __init__(self):
         pass
 
-
 class Game:
     def __init__(self):
         self.frame = simplegui.create_frame('Game', 1280, 720)
         self.playersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
-        self.state = "mainMenu"
+        self.gameState = "mainMenu"
         self.kbd = Keyboard()
-        self.player = Player(Vector(640,360), self.playersheet)
+        self.player = Player(Vector(640, 360), self.playersheet)
         self.frame.add_button("Start", self.button_handler, 200)
         self.frame.set_draw_handler(self.draw)
         self.frame.set_keydown_handler(self.kbd.keyDown)
         self.frame.set_keyup_handler(self.kbd.keyUp)
 
+        # Define a simple rectangle (for collision detection)
+        self.collidable_obj_pos = Vector(300, 300)
+        self.collidable_obj_dims = (200, 100)
+
     def gamestart(self):
         self.frame.start()
 
-    def button_handler(self): # Start Button Handler
-        if self.state == "mainMenu":
-            self.state = "game"
+    def button_handler(self):  # Start Button Handler
+        if self.gameState == "mainMenu":
+            self.gameState = "game"
 
     def keyboardUpdate(self):
         if self.kbd.right:
-            self.player.vel.add(Vector(1, 0))
+            self.player.vel.add(Vector(0.5, 0))
+            self.player.playerState = "walkRight"
         if self.kbd.left:
-            self.player.vel.add(Vector(-1, 0))
+            self.player.vel.add(Vector(-0.5, 0))
+            self.player.playerState = "walkRight"
+        elif not self.kbd.left and not self.kbd.right:
+            self.player.playerState = "idle"
 
     def draw(self, canvas):
-        if self.state == "mainMenu":
+        if self.gameState == "mainMenu":
             self.frame.set_canvas_background("lightyellow")
             canvas.draw_text('Menu', (540, 300), 50, 'Red')
             canvas.draw_text('Press Start', (540, 350), 28, 'Red')
 
-        elif self.state == "game":
+        elif self.gameState == "game":
             self.frame.set_canvas_background("lightblue")
-            self.player.draw(canvas)
+            self.player.draw(canvas, self.player.playerState)
             self.keyboardUpdate()
             self.player.update()
 
+            # Draw the collidable object (rectangle)
+            canvas.draw_polygon([(self.collidable_obj_pos.x, self.collidable_obj_pos.y),
+                                 (self.collidable_obj_pos.x + self.collidable_obj_dims[0], self.collidable_obj_pos.y),
+                                 (self.collidable_obj_pos.x + self.collidable_obj_dims[0], self.collidable_obj_pos.y + self.collidable_obj_dims[1]),
+                                 (self.collidable_obj_pos.x, self.collidable_obj_pos.y + self.collidable_obj_dims[1])],
+                                 1, "Red", "Pink")
 
+            # Check for collision with the collidable object
+            if self.check_collision(self.player.pos, self.player.dims, self.collidable_obj_pos, self.collidable_obj_dims):
+                canvas.draw_text("Collision Detected!", (500, 100), 30, "Black")
+
+    def check_collision(self, player_pos, player_dims, obj_pos, obj_dims):
+        player_rect = (player_pos.x, player_pos.y, player_pos.x + player_dims[0], player_pos.y + player_dims[1])
+        obj_rect = (obj_pos.x, obj_pos.y, obj_pos.x + obj_dims[0], obj_pos.y + obj_dims[1])
+
+        # Check if the player's rectangle intersects with the object's rectangle
+        if (player_rect[2] > obj_rect[0] and player_rect[0] < obj_rect[2] and
+            player_rect[3] > obj_rect[1] and player_rect[1] < obj_rect[3]):
+            return True
+        return False
 
 newgame = Game()
 newgame.gamestart()
-
