@@ -1,6 +1,8 @@
-from math import gamma
 
 import SimpleGUICS2Pygame.simpleguics2pygame as simplegui, math, time
+# from SimpleGUICS2Pygame.example.Mandelbrot_Set import frame
+
+
 class Vector:
     def __init__(self, x=0, y=0):
         self.x = x
@@ -133,16 +135,21 @@ class Spritesheet:
         self.spriteCentre = (self.spriteWidthHeight[0] / 2, self.height - (self.spriteWidthHeight[1] / 2))
         self.spriteFrame = [0,0]
 
-
-
+class attackSpritesheet(Spritesheet):
+    def __init__(self, img, row, column, frameWidths):
+        super().__init__(img, row, column)
+        self.frameWidths = frameWidths
 
 class Player:
-    def __init__(self, pos, rightSpritesheet, leftSpriteSheet):
+    def __init__(self, pos, rightSpritesheet, leftSpriteSheet, attackRightSpriteSheet, attackLeftSpriteSheet):
         self.pos = pos
         self.vel = Vector()
         self.rightSpritesheet = rightSpritesheet
         self.leftSpritesheet = leftSpriteSheet
+        self.attackRightSpriteSheet = attackRightSpriteSheet
+        self.attackLeftSpriteSheet = attackLeftSpriteSheet
         self.playerState = "idle"
+        self.attackFrame = 0
         self.centre = (290,43)
         self.dims = (580,86)
         self.frameTime = 0
@@ -150,6 +157,7 @@ class Player:
         self.playerDirection = "Right"
 
     def draw(self, canvas, state):
+
         if state == "idle":
             if self.playerDirection == "Right":
                 centre = (self.rightSpritesheet.spriteCentre[0] + self.rightSpritesheet.spriteWidthHeight[0], self.rightSpritesheet.spriteCentre[1])
@@ -157,6 +165,24 @@ class Player:
             elif self.playerDirection == "Left":
                 centre = (self.leftSpritesheet.spriteCentre[0] + self.leftSpritesheet.spriteWidthHeight[0], self.leftSpritesheet.spriteCentre[1])
                 canvas.draw_image(self.leftSpritesheet.img, centre, self.leftSpritesheet.spriteWidthHeight, self.pos.get_p(), self.leftSpritesheet.spriteWidthHeight)
+
+        if state == "attack":
+            if self.playerDirection == "Right":
+                total_width = sum(self.attackRightSpriteSheet.frameWidths[0:self.attackFrame])
+                centrex = total_width + (self.attackRightSpriteSheet.frameWidths[self.attackFrame] / 2)
+                centrey = self.attackRightSpriteSheet.spriteWidthHeight[1] / 2
+                width_height_dest = (self.attackRightSpriteSheet.frameWidths[self.attackFrame],
+                                     self.attackRightSpriteSheet.spriteWidthHeight[1])
+                canvas.draw_image(self.attackRightSpriteSheet.img, (centrex, centrey), width_height_dest, self.pos.get_p(), width_height_dest)
+            elif self.playerDirection == "Left":
+                total_width = sum(self.attackRightSpriteSheet.frameWidths[0:self.attackFrame])
+                centrex = total_width + (self.attackRightSpriteSheet.frameWidths[self.attackFrame] / 2)
+                centrey = self.attackRightSpriteSheet.spriteWidthHeight[1] / 2
+                width_height_dest = (self.attackRightSpriteSheet.frameWidths[self.attackFrame],
+                                     self.attackRightSpriteSheet.spriteWidthHeight[1])
+                canvas.draw_image(self.attackLeftSpriteSheet.img, (centrex, centrey), width_height_dest, self.pos.get_p(), width_height_dest)
+
+
 
         elif state == "walkRight":
             centrex = (self.rightSpritesheet.spriteFrame[0] + 0.5) * self.rightSpritesheet.spriteWidthHeight[0]
@@ -171,10 +197,16 @@ class Player:
 
     def update(self):
         self.pos.add(self.vel)
+
         self.vel *= 0.90
         self.frameTime += 1
         if self.frameTime >= self.Interval:
             self.frameTime = 0
+            if self.playerState == "attack":
+                self.attackFrame += 1
+                if self.attackFrame == 4:
+                    self.attackFrame = 0
+                    self.playerState = "idle"
             self.rightSpritesheet.spriteFrame[0] += 1
             self.leftSpritesheet.spriteFrame[0] += 1
             if self.rightSpritesheet.spriteFrame[0] >= self.rightSpritesheet.column:
@@ -195,6 +227,7 @@ class Keyboard:
         self.right = False
         self.left = False
         self.space = False
+        self.attack = False
     def keyDown(self, key):
         if key == simplegui.KEY_MAP['right']:
             self.right = True
@@ -202,6 +235,8 @@ class Keyboard:
             self.left = True
         if key == simplegui.KEY_MAP['space']:
             self.space = True
+        if key == simplegui.KEY_MAP['x']:
+            self.attack = True
     def keyUp(self, key):
         if key == simplegui.KEY_MAP['right']:
             self.right = False
@@ -209,6 +244,8 @@ class Keyboard:
             self.left = False
         if key == simplegui.KEY_MAP['space']:
             self.space = False
+        if key == simplegui.KEY_MAP['x']:
+            self.attack = False
 
 class interaction:
     def __init__(self):
@@ -221,9 +258,11 @@ class Game:
         self.frame = simplegui.create_frame('Game', 1280, 720)
         self.rightPlayersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
         self.leftPlayersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/newLeftSpritewalksheet.png", 1, 8)
+        self.attack1RightPlayersheet = attackSpritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/attack1RightSpritesheet.png", 1, 4, [48,49,85,80])
+        self.attack1LeftPlayersheet = attackSpritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/leftAttackSpritesheet.png", 1, 4, [48, 48, 84, 80])
         self.gameState = "mainMenu"
         self.kbd = Keyboard()
-        self.player = Player(Vector(640,360), self.rightPlayersheet, self.leftPlayersheet)
+        self.player = Player(Vector(640,360), self.rightPlayersheet, self.leftPlayersheet, self.attack1RightPlayersheet, self.attack1LeftPlayersheet)
         self.button = self.frame.add_button("Start", self.button_handler, 200)
         self.frame.set_draw_handler(self.draw)
         self.frame.set_keydown_handler(self.kbd.keyDown)
@@ -245,11 +284,13 @@ class Game:
             self.player.vel.add(Vector(0.5, 0))
             self.player.playerState = "walkRight"
             self.player.playerDirection = "Right"
-        if self.kbd.left:
+        elif self.kbd.left:
             self.player.vel.add(Vector(-0.5, 0))
             self.player.playerState = "walkLeft"
             self.player.playerDirection = "Left"
-        elif not self.kbd.left and not self.kbd.right:
+        elif self.kbd.attack:
+            self.player.playerState = "attack"
+        elif not self.kbd.left and not self.kbd.right and not self.player.attackFrame == 0:
             self.player.playerState = "idle"
 
     def draw(self, canvas):
@@ -263,6 +304,8 @@ class Game:
             self.player.draw(canvas, self.player.playerState)
             self.keyboardUpdate()
             self.player.update()
+            print(self.player.playerState)
+
 
 
 
