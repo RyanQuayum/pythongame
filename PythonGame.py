@@ -1,6 +1,6 @@
 
 import SimpleGUICS2Pygame.simpleguics2pygame as simplegui, math, time
-# from SimpleGUICS2Pygame.example.Mandelbrot_Set import frame
+
 
 
 class Vector:
@@ -123,6 +123,31 @@ class Vector:
         unit = vec.get_normalized()
         return unit.multiply(self.dot(unit))
 
+class Keyboard:
+    def __init__(self):
+        self.right = False
+        self.left = False
+        self.space = False
+        self.attack = False
+    def keyDown(self, key):
+        if key == simplegui.KEY_MAP['right']:
+            self.right = True
+        if key == simplegui.KEY_MAP['left']:
+            self.left = True
+        if key == simplegui.KEY_MAP['space']:
+            self.space = True
+        if key == simplegui.KEY_MAP['x']:
+            self.attack = True
+    def keyUp(self, key):
+        if key == simplegui.KEY_MAP['right']:
+            self.right = False
+        if key == simplegui.KEY_MAP['left']:
+            self.left = False
+        if key == simplegui.KEY_MAP['space']:
+            self.space = False
+        if key == simplegui.KEY_MAP['x']:
+            self.attack = False
+
 class Spritesheet:
     def __init__(self, img, row, column):
         self.img = simplegui.load_image(img)
@@ -150,17 +175,15 @@ class Player:
         self.attackLeftSpriteSheet = attackLeftSpriteSheet
         self.playerState = "idle"
         self.attackFrame = 0
-        self.centre = (290,43)
-        self.dims = (580,86)
+        self.centre = (290,32)
+        self.dims = (580,64)
         self.frameTime = 0
         self.Interval = 7
         self.playerDirection = "Right"
+        self.grounded = False
+        # self.playerLeftOffset = for scalability of character later
 
-    def bottom(self):
-        return self.pos + Vector(0, self.dims[1] / 2)
-    
-    def top(self):
-        return self.pos - Vector(0, self.dims[1] / 2)
+
 
 
     def draw(self, canvas, state):
@@ -204,6 +227,8 @@ class Player:
 
     def update(self):
         self.pos.add(self.vel)
+        if not self.grounded and self.vel.y < 5:
+            self.vel.y += 0.5
 
         self.vel *= 0.90
         self.frameTime += 1
@@ -226,88 +251,177 @@ class Player:
                 self.leftSpritesheet.spriteFrame[1] += 1
             if self.leftSpritesheet.spriteFrame[1] >= self.leftSpritesheet.row:
                 self.leftSpritesheet.spriteFrame[1] = 0
-class Terrain:
-    def __init__(self, y, xstart, xend, spritesheet, width = 50):
-        self.y = y
-        self.xstart = xstart
-        self.xend = xend
-        self.spritesheet = spritesheet
+
+
+
+
+class inviswall:
+    def __init__(self, xcorner, ycorner, width, height):
+        self.xcorner = xcorner
+        self.ycorner = ycorner
         self.width = width
-        self.top = self.y - self.width / 2
-        self.bottom = self.y + self.width / 2
-
-    def hit(self, player):
-        player_bottom = player.bottom()
-        player_top = player.top()
-
-        return(
-            player_bottom.y > self.top and player_top.y < self.bottom and 
-            self.xstart < player_bottom.x and player_bottom.x < self.xend
-        )
-    
-    
-    def iteract_player(self, player):
-        if self.hit(player):
-            player.vel.y = 0
-            player.pos.y = self.top - player.dims[1] / 2
-            return True
-        else:
-            return False
+        self.height = height
+        self.left = xcorner
+        self.right = xcorner + width
+        self.top = ycorner
+        self.bottom = ycorner + height
+        self.centreX = xcorner + (width / 2)
+        self.centreY = ycorner + (height / 2)
+        self.halfwidth = (42 + width) / 2
+        self.halfheight = (64 + height) / 2
 
     def draw(self, canvas):
-        centrex = (self.spritesheet.spriteFrame[0] + 0.5) * self.spritesheet.spriteWidthHeight[0]
-        centrey = (self.spritesheet.spriteFrame[1] + 0.5) * self.spritesheet.spriteWidthHeight[1]
-
-        canvas.draw_image(self.spritesheet.img, (centrex, centrey), self.spritesheet.spriteWidthHeight,
-                          ((self.xstart + self.xend) /2, self.y), ((self.xend - self.xstart, self.spritesheet.spriteWidthHeight[1])))
+        canvas.draw_polygon([(self.xcorner, self.ycorner), (self.xcorner + self.width, self.ycorner), (self.xcorner + self.width, self.ycorner + self.height), (self.xcorner, self.ycorner + self.height)], 1, 'Red')
 
 
-class Keyboard:
-    def __init__(self):
-        self.right = False
-        self.left = False
-        self.space = False
-        self.attack = False
-    def keyDown(self, key):
-        if key == simplegui.KEY_MAP['right']:
-            self.right = True
-        if key == simplegui.KEY_MAP['left']:
-            self.left = True
-        if key == simplegui.KEY_MAP['space']:
-            self.space = True
-        if key == simplegui.KEY_MAP['x']:
-            self.attack = True
-    def keyUp(self, key):
-        if key == simplegui.KEY_MAP['right']:
-            self.right = False
-        if key == simplegui.KEY_MAP['left']:
-            self.left = False
-        if key == simplegui.KEY_MAP['space']:
-            self.space = False
-        if key == simplegui.KEY_MAP['x']:
-            self.attack = False
+
 
 class interaction:
-    def __init__(self, terrains, player):
-        self.terrains = terrains
+    def __init__(self, polygons, player, kbd):
+        self.polygons = polygons
         self.player = player
+        self.kbd = kbd
 
     def draw(self, canvas):
         self.update()
-        for terrain in self.terrains:
-            terrain.draw(canvas)
-        self.player.draw(canvas, self.player.playerState)
+        for polygon in self.polygons: #Polygon dimensions here smth like that
+            polygon.draw(canvas)
 
-    def update(self):
-        self.player.update()
 
-        on_terrain = False
-        for terrain in self.terrains:
-            if terrain.iteract_player(self.player):
-                on_terrain = True
+    def playerGroundCollide(self, poly, player):
+        playerBottomOffset = player.pos.y + 32
+        playerLeftOffset = player.pos.x - 21
+        playerRightOffset = player.pos.x + 21
 
-        if not on_terrain:
-            self.player.vel.add(Vector(0, 0.5))
+        if (playerRightOffset > poly.xcorner and playerLeftOffset < poly.right) and (
+                playerBottomOffset <= poly.top+5 and playerBottomOffset >= poly.top-5):
+            self.player.grounded = True
+            # Place player on top of the platform and stop downward movement (y velocity)
+            player.pos.y = poly.top - 32  # Adjust position to rest on platform
+            player.vel.y = 0  # Stop downward velocity (gravity)
+            return True  # Collision detected
+        else:
+            return False  # No collision
+
+
+
+    def playerLeftWallCollide(self, poly, player):
+        playerBottomOffset = player.pos.y + 32
+        playerTopOffset = player.pos.y - 32
+        playerRightOffset = player.pos.x + 21
+
+        if (playerBottomOffset > poly.ycorner or playerTopOffset < poly.bottom) and (
+                playerRightOffset <= poly.left + 2 and playerRightOffset >= poly.left - 2):
+            player.pos.x = poly.left - 32  # Adjust position to rest on platform
+            player.vel.x = 0  # Stop downward velocity (gravity)
+            return True  # Collision detected
+        else:
+            return False  # No collision
+
+    def playerRightWallCollide(self, poly, player):
+        playerBottomOffset = player.pos.y + 32
+        playerTopOffset = player.pos.y - 32
+        playerLeftOffset = player.pos.x - 21
+
+        if (playerBottomOffset > poly.ycorner or playerTopOffset < poly.bottom) and (
+                playerLeftOffset <= poly.right + 2 and playerLeftOffset >= poly.right - 2):
+            player.pos.x = poly.right + 32  # Adjust position to rest on platform
+            player.vel.x = 0  # Stop downward velocity (gravity)
+            return True  # Collision detected
+        else:
+            return False  # No collision
+
+
+    def playerRoofCollide(self, poly, player):
+        playerBottomOffset = player.pos.y + 32
+        playerLeftOffset = player.pos.x - 21
+        playerRightOffset = player.pos.x + 21
+        playerTopoffset = player.pos.y - 32
+
+
+        if (playerRightOffset > poly.xcorner and playerLeftOffset < poly.right) and (
+                playerTopoffset <= poly.top+5 and playerBottomOffset >= poly.top-5):
+            # Place player on top of the platform and stop downward movement (y velocity)
+            player.pos.y = poly.bottom + 32  # Adjust position to rest on platform
+            player.vel.y = 0  # Stop downward velocity (gravity)
+            return True  # Collision detected
+        else:
+            return False  # No collision
+
+
+
+    def wallOrGround(self, poly):
+
+        distanceX = self.player.pos.get_p()[0] - poly.centreX
+        distanceY = self.player.pos.get_p()[1] - poly.centreY
+
+        overlapX = poly.halfwidth - abs(distanceX)
+        overlapY = poly.halfheight - abs(distanceY)
+
+
+        if overlapX < overlapY:
+            if distanceX > 0:
+                return "right"
+            else:
+                return "left"
+        else:
+            if distanceY > 0:
+                return "bottom"
+            else:
+                return "top"
+
+
+    def is_colliding(self, poly):
+        # Get the player and platform bounding boxes
+        player_left = self.player.pos.x - 21
+        player_right = self.player.pos.x + 21
+        player_top = self.player.pos.y - 32
+        player_bottom = self.player.pos.y + 32
+
+
+        # Check for overlap in both X and Y axes
+
+        return (player_right > poly.left and player_left < poly.right) or (player_bottom > poly.top and player_top < poly.bottom)
+
+    def update(self): #Checks for gravity # Initially assume the player is not grounded
+        # Check for collisions with each polygon (platforms)
+        # print(self.player.grounded)
+        self.player.grounded = False
+        for poly in self.polygons:
+            if self.is_colliding(poly):
+                if self.wallOrGround(poly) == "top":
+                    self.playerGroundCollide(poly, self.player)
+                elif self.wallOrGround(poly) == "left":
+                    self.playerLeftWallCollide(poly, self.player)
+                elif self.wallOrGround(poly) == "right":
+                    self.playerRightWallCollide(poly, self.player)
+                elif self.wallOrGround(poly) == "bottom":
+                    self.playerRoofCollide(poly, self.player)
+
+
+ # Gravity effect (pull down)
+
+        # Jumping: if player is grounded and pressing space, apply upward velocity
+        if self.kbd.space and self.player.grounded:
+            self.player.vel.y = -15  # Jump velocity (negative to go upwards)
+            self.player.grounded = False  # Prevent double jumping after jump initiation
+
+        # Update player position with velocity
+
+class lives:
+    def __init__(self, img):
+        self.img = img
+        self.imgwidth = img.get_width()
+        self.imgheight = img.get_height()
+        self.max = 5
+        self.currentlives = 5
+    def damage(self):
+        self.currentlives -= 1
+    def draw(self, canvas):
+        for i in range(self.currentlives):
+            canvas.draw_image(self.img, ((self.imgwidth/2), (self.imgheight/2)), (16,16), (1150 + (i*25), 20), (32,32))
+
+
 
 
 
@@ -315,22 +429,45 @@ class Game:
     def __init__(self):
         self.frame = simplegui.create_frame('Game', 1280, 720)
         self.rightPlayersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
+        self.heartimg = simplegui.load_image("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/heart.png")
         self.leftPlayersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/newLeftSpritewalksheet.png", 1, 8)
         self.attack1RightPlayersheet = attackSpritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/attack1RightSpritesheet.png", 1, 4, [48,49,85,80])
         self.attack1LeftPlayersheet = attackSpritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/leftAttackSpritesheet.png", 1, 4, [48, 48, 84, 80])
+        self.lvl1image = simplegui.load_image("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/lvl1.png")
         self.gameState = "mainMenu"
         self.kbd = Keyboard()
-        self.player = Player(Vector(640,360), self.rightPlayersheet, self.leftPlayersheet, self.attack1RightPlayersheet, self.attack1LeftPlayersheet)
+        self.lifesystem = lives(self.heartimg)
+        self.player = Player(Vector(10,5), self.rightPlayersheet, self.leftPlayersheet, self.attack1RightPlayersheet, self.attack1LeftPlayersheet)
         self.button = self.frame.add_button("Start", self.button_handler, 200)
         self.frame.set_draw_handler(self.draw)
         self.frame.set_keydown_handler(self.kbd.keyDown)
         self.frame.set_keyup_handler(self.kbd.keyUp)
         self.terrain_spritesheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/main/forest-2.png",10,40)
-        #terrain_spritesheet.spriteFrame = [2, 3]
-        self.terrain_ground = Terrain(720, 0, 1280, self.terrain_spritesheet)
-        self.terrain_floating = Terrain(500, 400, 800, self.terrain_spritesheet)
-        self.terrains = [self.terrain_ground, self.terrain_floating]
-        self.interaction = interaction(self.terrains, self.player)
+
+
+        polygon_positions = [
+            (0, 80, 125, 30),
+            (225, 80, 180, 30),
+            (405, 0, 30, 240),
+            (0, 207, 190, 30),
+
+
+
+
+
+
+
+
+        ]
+
+        self.polygons = [inviswall(xcorner, ycorner, width, height) for xcorner, ycorner, width, height in polygon_positions]
+
+        self.interaction = interaction(self.polygons, self.player, self.kbd)
+
+
+
+
+
 
     def gamestart(self):
         self.frame.start()
@@ -375,15 +512,17 @@ class Game:
             canvas.draw_text('Press Start', (540, 350), 28, 'Red')
 
         elif self.gameState == "game":
-            self.frame.set_canvas_background("lightblue")
+            canvas.draw_image(self.lvl1image, (640, 360), (1280, 720), (640, 360), (1280, 720))
             self.interaction.draw(canvas)
+            self.interaction.update()
 
-            for terrain in self.terrains:
-                terrain.draw(canvas)
-                
+            for polygon in self.polygons:
+                polygon.draw(canvas)
             self.player.draw(canvas, self.player.playerState)
             self.keyboardUpdate()
             self.player.update()
+            self.lifesystem.draw(canvas)
+
 
 
 
