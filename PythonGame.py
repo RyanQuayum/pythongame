@@ -281,6 +281,7 @@ class enemy(Player):
         self.idleLeftSpriteSheet = idleLeftSpriteSheet
         self.deadSpriteSheet = deadSpriteSheet
         self.playerDirection = "Right"
+        self.life = 1
 
     def draw(self, canvas):
         if self.playerState == "idle":
