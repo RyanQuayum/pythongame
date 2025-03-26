@@ -273,17 +273,31 @@ class Player:
 
 
 class enemy(Player):
-    def __init__(self, pos,  rightSpritesheet, leftSpriteSheet, attackRightSpriteSheet, attackLeftSpriteSheet, idleSpriteSheet, idleLeftSpriteSheet, deadSpriteSheet, attackFrames):
+    def __init__(self, pos,  rightSpritesheet, leftSpriteSheet, attackRightSpriteSheet, attackLeftSpriteSheet, idleSpriteSheet, idleLeftSpriteSheet, deadRightSpriteSheet, deadLeftSpriteSheet, hitRightSpriteSheet, hitLeftSpriteSheet, attackFrames):
         super().__init__(pos, rightSpritesheet, leftSpriteSheet, attackRightSpriteSheet, attackLeftSpriteSheet)
         self.attackFrames = attackFrames
         self.vel = Vector()
         self.idleSpriteSheet = idleSpriteSheet
         self.idleLeftSpriteSheet = idleLeftSpriteSheet
-        self.deadSpriteSheet = deadSpriteSheet
+        self.deadRightSpriteSheet = deadRightSpriteSheet
+        self.deadLeftSpriteSheet = deadLeftSpriteSheet
+        self.hitRightSpriteSheet = hitRightSpriteSheet
+        self.hitLeftSpriteSheet = hitLeftSpriteSheet
         self.playerDirection = "Right"
-        self.life = 1
+        self.life = 2
+        self.hit = False
+        self.immunityFrames = 75
 
     def draw(self, canvas):
+        if self.hit:
+            centrex = None
+            centrey = None
+            #canvas.draw_image(self.idleSpriteSheet.img, (centrex, centrey), self.idleSpriteSheet.spriteWidthHeight, self.pos.get_p(), (self.idleSpriteSheet.spriteWidthHeight[0]*2, self.idleSpriteSheet.spriteWidthHeight[1]*2))
+
+            return
+
+
+
         if self.playerState == "idle":
             if self.playerDirection == "Right":
                 centrex = (self.idleSpriteSheet.spriteFrame[0] + 0.5) * self.idleSpriteSheet.spriteWidthHeight[0]
@@ -312,6 +326,8 @@ class enemy(Player):
                                                      self.attackLeftSpriteSheet.spriteWidthHeight[1] * 2))
 
 
+
+
     def update(self):
 
         self.vel *= 0.90
@@ -330,6 +346,8 @@ class enemy(Player):
             self.idleLeftSpriteSheet.spriteFrame[0] += 1
             self.attackRightSpriteSheet.spriteFrame[0] += 1
             self.attackLeftSpriteSheet.spriteFrame[0] += 1
+            self.hitRightSpriteSheet.spriteFrame[0] += 1
+            self.hitLeftSpriteSheet.spriteFrame[0] += 1
 
 
             if self.rightSpritesheet.spriteFrame[0] >= self.rightSpritesheet.column:
@@ -368,6 +386,19 @@ class enemy(Player):
                 self.attackLeftSpriteSheet.spriteFrame[1] += 1
             if self.attackLeftSpriteSheet.spriteFrame[1] >= self.attackLeftSpriteSheet.row:
                 self.attackLeftSpriteSheet.spriteFrame[1] = 0
+
+            if self.hitRightSpriteSheet.spriteFrame[0] >= self.hitRightSpriteSheet.column:
+                self.hitRightSpriteSheet.spriteFrame[0] = 0
+                self.hitRightSpriteSheet.spriteFrame[1] += 1
+            if self.hitRightSpriteSheet.spriteFrame[1] >= self.hitRightSpriteSheet.row:
+                self.hitRightSpriteSheet.spriteFrame[1] = 0
+
+            if self.hitLeftSpriteSheet.spriteFrame[0] >= self.hitLeftSpriteSheet.column:
+                self.hitLeftSpriteSheet.spriteFrame[0] = 0
+                self.hitLeftSpriteSheet.spriteFrame[1] += 1
+            if self.hitLeftSpriteSheet.spriteFrame[1] >= self.hitLeftSpriteSheet.row:
+                self.hitLeftSpriteSheet.spriteFrame[1] = 0
+
 
 class inviswall:
     def __init__(self, xcorner, ycorner, width, height):
@@ -583,13 +614,27 @@ class interaction:
                         player.vel.x += 1
             elif enemy.playerDirection == "Left":
                 if enemy.attackFrame == 8:
-                    if (playerLeftOffset >= enemyLeftOffset and playerLeftOffset <= enemyLeftOffset + 35) or (playerRightOffset >= enemyLeftOffset and playerRightOffset <= enemyLeftOffset + 35):
+                    if (playerLeftOffset <= enemyLeftOffset and playerLeftOffset <= enemyLeftOffset + 35) or (playerRightOffset <= enemyLeftOffset and playerRightOffset <= enemyLeftOffset - 35):
                         player.Hit = True
                         self.lifesystem.damage()
                         player.vel.y += 0.75
                         player.vel.x += -1
 
+    def playerAttack(self, player, enemy):
+        playerLeftOffset = player.pos.x - 43
+        playerRightOffset = player.pos.x + 43
+        enemyRightOffset = enemy.pos.x + 30
+        enemyLeftOffset = enemy.pos.x - 30
+        if player.playerState == "attack":
+            if player.playerDirection == "Right":
 
+                if player.attackFrame == 2:
+                    if (enemyLeftOffset >= playerRightOffset and enemyLeftOffset <= playerRightOffset + 10) or (enemyRightOffset >= playerRightOffset and enemyRightOffset <= enemyRightOffset + 10):
+                        enemy.hit = True
+            elif player.playerDirection == "Left":
+                if player.attackFrame == 2:
+                    if (enemyLeftOffset <= playerLeftOffset and playerLeftOffset <= enemyLeftOffset + 35) or (enemyLeftOffset >= playerRightOffset and enemyLeftOffset <= playerRightOffset + 35):
+                        enemy.hit = True
 
 
 
@@ -741,6 +786,7 @@ class saw:
                 self.angle = self.get_surface_angle(next_surface)
                 self.vel = self.get_surface_velocity(next_surface)
 
+
         # Rotate saw continuously
         self.angle += 0.1
 
@@ -804,6 +850,9 @@ class Game:
         self.skeletonWalkLeft = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/skeletonWalkLeft.png", 1, 13)
         self.skeletonWalkRight = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/Skeleton%20Walk.png", 1, 13)
         self.skeletonDeadRight = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/Skeleton%20Dead.png", 1, 12)
+        self.skeletonDeadLeft = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/skeletonDeadLeft.png", 1, 12)
+        self.skeletonHitRight = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/skeletonDeadLeft.png", 1, 8)
+        self.skeletonHitLeft = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/skeletonHitLeft.png", 1, 8)
         self.skeletonAttackRight = attackSpritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/Skeleton%20Attack.png", 1, 18, [43]*18)
         self.skeletonAttackLeft = attackSpritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/skeletonAttackLeft.png", 1, 18, [43]*18)
         self.singleCoin = simplegui.load_image("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/singlecoin.png")
@@ -812,7 +861,7 @@ class Game:
         self.kbd = Keyboard()
         self.lifesystem = lives(self.heartimg)
         self.scoresystem = score(self.singleCoin)
-        self.player = Player(Vector(20, 20), self.rightPlayersheet, self.leftPlayersheet, self.attack1RightPlayersheet, self.attack1LeftPlayersheet)
+        self.player = Player(Vector(100, 20), self.rightPlayersheet, self.leftPlayersheet, self.attack1RightPlayersheet, self.attack1LeftPlayersheet)
         self.button = self.frame.add_button("Start", self.button_handler, 200)
         self.frame.set_draw_handler(self.draw)
         self.frame.set_keydown_handler(self.kbd.keyDown)
@@ -820,7 +869,7 @@ class Game:
         self.terrain_spritesheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/main/forest-2.png",10,40)
 
         self.enemies = [
-             enemy(Vector(70, 172), self.skeletonWalkRight, self.skeletonWalkLeft, self.skeletonAttackRight, self.skeletonAttackLeft, self.skeletonIdleRight, self.skeletonLeftIdle, self.skeletonDeadRight, 18)
+             enemy(Vector(70, 172), self.skeletonWalkRight, self.skeletonWalkLeft, self.skeletonAttackRight, self.skeletonAttackLeft, self.skeletonIdleRight, self.skeletonLeftIdle, self.skeletonDeadRight, self.skeletonDeadLeft, self.skeletonHitRight, self.skeletonHitLeft, 18)
         ]
 
         self.projectiles = [
@@ -913,7 +962,9 @@ class Game:
             self.player.update()
             self.lifesystem.draw(canvas)
             self.scoresystem.draw(canvas)
+
             for enemy in self.enemies:
+                self.interaction.playerAttack(self.player, enemy)
                 enemy.update()
                 self.interaction.enemyHit(self.player, enemy)
                 self.interaction.enemyReact(enemy)
