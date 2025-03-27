@@ -194,6 +194,7 @@ class Player:
         self.hasKey = False
         self.immunityFrames = 75
         self.Hit = False
+
         # self.playerLeftOffset = for scalability of character later
 
 
@@ -477,6 +478,10 @@ class enemy(Player):
             if self.deadLeftSpriteSheet.spriteFrame[1] >= self.deadLeftSpriteSheet.row:
                 self.deadLeftSpriteSheet.spriteFrame[1] = 0
 
+class rangedEnemy(enemy):
+    def __init__(self, pos,  rightSpritesheet, leftSpriteSheet, attackRightSpriteSheet, attackLeftSpriteSheet, idleSpriteSheet, idleLeftSpriteSheet, deadRightSpriteSheet, deadLeftSpriteSheet, hitRightSpriteSheet, hitLeftSpriteSheet, attackFrames):
+        super().__init__(pos, rightSpritesheet, leftSpriteSheet, attackRightSpriteSheet, attackLeftSpriteSheet, idleSpriteSheet, idleLeftSpriteSheet, deadRightSpriteSheet, deadLeftSpriteSheet, hitRightSpriteSheet, hitLeftSpriteSheet, attackFrames)
+
 
 class inviswall:
     def __init__(self, xcorner, ycorner, width, height):
@@ -492,6 +497,10 @@ class inviswall:
         self.centreY = ycorner + (height / 2)
         self.halfwidth = (42 + width) / 2
         self.halfheight = (64 + height) / 2
+        self.topleft = Vector(xcorner, ycorner)
+        self.topright = Vector(xcorner + width, ycorner)
+        self.bottomleft = Vector(xcorner, ycorner + height)
+        self.bottomright = Vector(xcorner + width, ycorner + height)
 
     def draw(self, canvas):
         canvas.draw_polygon([(self.xcorner, self.ycorner), (self.xcorner + self.width, self.ycorner), (self.xcorner + self.width, self.ycorner + self.height), (self.xcorner, self.ycorner + self.height)], 1, 'Red')
@@ -528,16 +537,26 @@ class interaction:
     def enemyReact(self, enemy):
         if enemy.playerState == "attack":
             return None
-        if abs(enemy.pos.x - self.player.pos.x) < 80 and abs(enemy.pos.y - self.player.pos.y) < 5:
-            if enemy.pos.x  < self.player.pos.x:
-              enemy.playerDirection = "Right"
-            elif enemy.pos.x > self.player.pos.x:
-              enemy.playerDirection = "Left"
-            enemy.playerState = "attack"
-        elif abs(enemy.pos.x - self.player.pos.x) > 20 and abs(enemy.pos.y - self.player.pos.y) > 5:
-            enemy.playerState = "idle"
+        if str(type(enemy)) == "<class '__main__.rangedEnemy'>":
+            if abs(enemy.pos.x - self.player.pos.x) < 250 and abs(enemy.pos.y - self.player.pos.y) < 5:
+                if enemy.pos.x  < self.player.pos.x:
+                  enemy.playerDirection = "Right"
+                elif enemy.pos.x > self.player.pos.x:
+                  enemy.playerDirection = "Left"
+                enemy.playerState = "attack"
+            elif abs(enemy.pos.x - self.player.pos.x) > 250 and abs(enemy.pos.y - self.player.pos.y) > 5:
+                enemy.playerState = "idle"
         else:
-            return None
+            if abs(enemy.pos.x - self.player.pos.x) < 80 and abs(enemy.pos.y - self.player.pos.y) < 5:
+                if enemy.pos.x  < self.player.pos.x:
+                  enemy.playerDirection = "Right"
+                elif enemy.pos.x > self.player.pos.x:
+                  enemy.playerDirection = "Left"
+                enemy.playerState = "attack"
+            elif abs(enemy.pos.x - self.player.pos.x) > 20 and abs(enemy.pos.y - self.player.pos.y) > 5:
+                enemy.playerState = "idle"
+            else:
+                return None
 
 
 
@@ -687,24 +706,36 @@ class interaction:
         playerTopOffset = player.pos.y - 32
         enemyRightOffset = enemy.pos.x + 10
         enemyLeftOffset = enemy.pos.x - 10
-
-        if enemy.playerState != "attack" or player.immunityFrames < 75:
-            return False
-        elif enemy.playerState == "attack":
-            if enemy.playerDirection == "Right":
-                if enemy.attackFrame == 8:
-                    if (playerLeftOffset >= enemyRightOffset and playerLeftOffset <= enemyRightOffset + 35) or (playerRightOffset >= enemyRightOffset and playerRightOffset <= enemyRightOffset + 35):
-                        player.Hit = True
-                        self.lifesystem.damage()
-                        player.vel.y += 0.75
-                        player.vel.x += 1
-            elif enemy.playerDirection == "Left":
-                if enemy.attackFrame == 8:
-                    if (playerLeftOffset <= enemyLeftOffset and playerLeftOffset <= enemyLeftOffset + 35) or (playerRightOffset <= enemyLeftOffset and playerRightOffset <= enemyLeftOffset - 35):
-                        player.Hit = True
-                        self.lifesystem.damage()
-                        player.vel.y += 0.75
-                        player.vel.x += -1
+        if str(type(enemy)) == "<class '__main__.rangedEnemy'>":
+            if enemy.playerState == "attack":
+                enemyposx = enemy.pos.x
+                enemyposy = enemy.pos.y
+                if enemy.playerDirection == "Right":
+                    if enemy.attackFrame == 8 and enemy.arrowTimer == 75:
+                        self.projectiles.append(projectile(Vector(enemyposx, enemyposy), "arrow",self.arrow, 1, self.player, (14,3.5), (28,7)))
+                        enemy.arrowLaunched = True
+                if enemy.playerDirection == "Left" and enemy.arrowTimer == 75:
+                    if enemy.attackFrame == 8:
+                        self.projectiles.append(projectile(Vector(enemyposx, enemyposy), "arrow",self.arrow, -1, self.player, (14,3.5), (28,7)))
+                        enemy.arrowLaunched = True
+        else:
+            if enemy.playerState != "attack" or player.immunityFrames < 75:
+                return False
+            elif enemy.playerState == "attack":
+                if enemy.playerDirection == "Right":
+                    if enemy.attackFrame == 8:
+                        if (playerLeftOffset >= enemyRightOffset and playerLeftOffset <= enemyRightOffset + 35) or (playerRightOffset >= enemyRightOffset and playerRightOffset <= enemyRightOffset + 35):
+                            player.Hit = True
+                            self.lifesystem.damage()
+                            player.vel.y += 0.75
+                            player.vel.x += 1
+                elif enemy.playerDirection == "Left":
+                    if enemy.attackFrame == 8:
+                        if (playerLeftOffset <= enemyLeftOffset and playerLeftOffset <= enemyLeftOffset + 35) or (playerRightOffset <= enemyLeftOffset and playerRightOffset <= enemyLeftOffset - 35):
+                            player.Hit = True
+                            self.lifesystem.damage()
+                            player.vel.y += 0.75
+                            player.vel.x += -1
 
     def playerAttack(self, player, enemy):
         playerLeftOffset = player.pos.x - 43
@@ -750,13 +781,6 @@ class interaction:
                 player.vel.x = (-player.vel.x * 1.5)
                 print("on spike")
                 lifesystem.damage() # Add spritesheet for spikes appearing
-            elif interact.name == "coin" and not interact.collected:
-                scoresystem.increase() # increases score (money)
-                interact.collected = True # sets to invis and stops any more score
-            elif interact.name == "key":
-                player.hasKey = True # Set to false when new scene
-                print("collected key")
-
             return True  # Collision detected
         else:
             return False  # No collision
@@ -855,18 +879,17 @@ class projectile(Player):
         self.direction = direction
         self.angle = self.calculateAngle(player)
         self.name = name
-        self.centre = (8, 8)
-        self.dims = (16, 16)
+        self.centre = centre
+        self.dims = dims
         self.vel.x = 5*math.cos(self.angle)*self.direction
         self.vel.y = -5* math.sin(self.angle)
-        self.projectileBottomOffset = self.pos.y + (self.dims[1] - self.centre[1])
-        self.projectileLeftOffset = self.pos.x - (self.dims[0] - self.centre[0])
-        self.projectileRightOffset = self.pos.x + (self.dims[1] - self.centre[1])
-        self.projectileTopOffset = self.pos.y - (self.dims[0] - self.centre[0])
         self.finished = False
+        self.collected = False
 
     def draw(self, canvas):
+        if self.name == "arrow":
 
+            self.angle = math.atan(self.vel.y / self.vel.x) - math.radians(180)
         canvas.draw_image(self.Spritesheet, self.centre, self.dims,
                           self.pos.get_p(), self.dims, self.angle)
 
@@ -895,6 +918,8 @@ class projectile(Player):
     def updateProjectile(self):
 
         self.pos.add(self.vel)
+        if self.name == "coin":
+            self.vel = Vector(0,0)
         if self.name == "fireball":
             self.vel.x = (0.5 * self.direction)
             self.vel.y = 0
@@ -905,12 +930,19 @@ class projectile(Player):
 
 class saw:
     def __init__(self, pos, surface, sprite):
+        self.reversed = False
         self.pos = pos  # Current position
         self.speed = 1  # Movement speed
         self.surface = surface  # The current polygon surface it's moving on
+        self.flippedsurface = (Vector(0,0), Vector(1,1))
         self.angle = self.get_surface_angle(surface)  # Rotation angle
         self.vel = self.get_surface_velocity(surface)  # Velocity along surface
         self.sawSprite = sprite
+        self.centre = (15, 9)
+        self.dims = (30, 18)
+        self.surfaceflipped = False
+        self.name = "saw"
+
 
     def get_surface_angle(self, surface):
         dx = surface[1].x - surface[0].x
@@ -924,36 +956,90 @@ class saw:
         return Vector((dx / length) * self.speed, (dy / length) * self.speed)
 
     def update(self, polygons):
-        self.pos.x += self.vel.x
-        self.pos.y += self.vel.y
 
-        # Check if the saw reaches the end of the current surface
-        if self.reached_surface_end():
-            next_surface = self.find_next_surface(polygons)
-            if next_surface:
-                self.surface = next_surface
-                self.angle = self.get_surface_angle(next_surface)
-                self.vel = self.get_surface_velocity(next_surface)
+        if self.reversed:
+            if not self.surfaceflipped:
+                temp1 = self.surface[0].x
+                self.flippedsurface[0].x = self.surface[1].x
+                self.flippedsurface[1].x = temp1
+                temp2 = self.surface[0].y
+                self.flippedsurface[0].y = self.surface[1].y
+                self.flippedsurface[1].y = temp2
+                self.surfaceflipped = True
+
+            self.angle = self.get_surface_angle(self.surface)
+            self.vel = self.get_surface_velocity(self.flippedsurface)
+            self.pos.x += self.vel.x
+            self.pos.y += self.vel.y
 
 
-        # Rotate saw continuously
-        self.angle += 0.1
+            if self.reached_surface_end():
+
+                next_surface = self.find_next_surface(polygons)
+
+                self.surfaceflipped = False
+
+                if next_surface:
+                    self.pos.x = self.flippedsurface[1].x
+                    self.pos.y = self.flippedsurface[1].y
+
+                    self.surface = next_surface
+        else:
+            self.angle = self.get_surface_angle(self.surface)
+            self.vel = self.get_surface_velocity(self.surface)
+            self.pos.x += self.vel.x
+            self.pos.y += self.vel.y
+            # Check if the saw reaches the end of the current surface
+            if self.reached_surface_end():
+
+                next_surface = self.find_next_surface(polygons)
+
+                if next_surface:
+                    self.pos.x = self.surface[1].x
+                    self.pos.y = self.surface[1].y
+                    self.surface = next_surface
+
+
 
     def reached_surface_end(self):
-        return (self.pos.x >= max(self.surface[0].x, self.surface[1].x) or
-                self.pos.x <= min(self.surface[0].x, self.surface[1].x))
+        return (self.pos.x > max(self.surface[0].x, self.surface[1].x) or
+                self.pos.x < min(self.surface[0].x, self.surface[1].x) or
+                self.pos.y > max(self.surface[0].y, self.surface[1].y) or
+                self.pos.y < min(self.surface[0].y, self.surface[1].y)
+                )
 
-    def find_next_surface(self, polygons):
-        for poly in polygons:
-            for i in range(len(poly)):
-                if poly[i] == self.surface[1]:  # Check if a polygon connects to the current end
-                    return (poly[i], poly[(i+1) % len(poly)])  # Return the next edge
+    def find_next_surface(self, edges):
+        for edge in edges:
+            if self.reversed:
+                if edge[1] == self.surface[0]:
+                    return edge
+            else:
+                if edge[0] == self.surface[1]:  # Check if a polygon connects to the current end
+                    return edge  # Return the next edge
 
         return None  # No next surface found
 
+
     def draw(self, canvas):
-        canvas.draw_rotated_image(self.sawSprite, self.pos.get_p(), self.angle)
-        ''' I have put self.sawSprite = simplegui.loadimage'''
+        if math.degrees(self.angle) == 0:
+            canvas.draw_image(self.sawSprite, (15,9), (30,18), (self.pos.x, self.pos.y - 9), (30,18), self.angle)
+        elif math.degrees(self.angle) == 90:
+            canvas.draw_image(self.sawSprite, (15, 9), (30, 18), (self.pos.x + 9, self.pos.y), (30, 18), self.angle)
+        elif math.degrees(self.angle) == 180:
+            canvas.draw_image(self.sawSprite, (15,9), (30,18), (self.pos.x, self.pos.y + 9), (30,18), self.angle)
+        elif math.degrees(self.angle) == -90:
+            canvas.draw_image(self.sawSprite, (15, 9), (30, 18), (self.pos.x - 9, self.pos.y), (30, 18), self.angle)
+        # else:
+        #
+        #     if math.degrees(self.angle) == 180:
+        #         canvas.draw_image(self.sawSprite, (15,9), (30,18), (self.pos.x, self.pos.y - 9), (30,18), 0)
+        #     elif math.degrees(self.angle) == 90:
+        #         canvas.draw_image(self.sawSprite, (15, 9), (30, 18), (self.pos.x - 9, self.pos.y), (30, 18), math.radians(-90))
+        #     elif math.degrees(self.angle) == 0:
+        #         canvas.draw_image(self.sawSprite, (15,9), (30,18), (self.pos.x, self.pos.y + 9), (30,18), math.radians(180))
+        #     elif math.degrees(self.angle) == -90:
+        #         canvas.draw_image(self.sawSprite, (15, 9), (30, 18), (self.pos.x + 9, self.pos.y), (30, 18), math.radians(90))
+
 
 
 class lives:
@@ -1034,6 +1120,10 @@ class Game:
         self.deleted_projectiles = []
         self.deleted_enemies = []
 
+        self.saws = [
+
+        ]
+
         polygon_positions = [
             (0, 80, 125, 30),
             (225, 80, 180, 30),
@@ -1052,6 +1142,8 @@ class Game:
 
         ]
 
+        self.polygon_edges = []
+
         interactable_positions = [
             (360, 40, 50, 40, "saw"),
             (217, 310, 30, 220, "ladder"),
@@ -1063,9 +1155,14 @@ class Game:
 
         self.interaction = interaction(self.polygons, self.player, self.kbd, self.lifesystem, self.interactables, self.enemies, self.scoresystem, self.projectiles, self.arrow)
 
+        for poly in self.polygons:
+            edges = ((poly.topleft, poly.topright), (poly.topright, poly.bottomright),
+                     (poly.bottomright, poly.bottomleft), (poly.bottomleft, poly.topleft))
+            self.polygon_edges.extend(edges)
 
 
-
+        self.saws.append(saw(Vector(250,80), self.polygon_edges[4], self.sawSprite))
+        '''HERE'''
 
     def gamestart(self):
         self.frame.start()
@@ -1150,6 +1247,13 @@ class Game:
             for projectile in self.deleted_projectiles:
                 if projectile in self.projectiles:
                     self.projectiles.remove(projectile)
+
+            for saw in self.saws:
+                for polygon in self.polygons:
+                    self.interaction.projectileCollision(saw, self.player, self.lifesystem, polygon, self.scoresystem)
+                saw.update(self.polygon_edges)
+                saw.draw(canvas)
+
 
 
                                                             ####HERE########
