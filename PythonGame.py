@@ -979,6 +979,8 @@ class saw:
 
                 self.surfaceflipped = False
 
+#error checking?
+
                 if next_surface:
                     self.pos.x = self.flippedsurface[1].x
                     self.pos.y = self.flippedsurface[1].y
@@ -1029,17 +1031,6 @@ class saw:
             canvas.draw_image(self.sawSprite, (15,9), (30,18), (self.pos.x, self.pos.y + 9), (30,18), self.angle)
         elif math.degrees(self.angle) == -90:
             canvas.draw_image(self.sawSprite, (15, 9), (30, 18), (self.pos.x - 9, self.pos.y), (30, 18), self.angle)
-        # else:
-        #
-        #     if math.degrees(self.angle) == 180:
-        #         canvas.draw_image(self.sawSprite, (15,9), (30,18), (self.pos.x, self.pos.y - 9), (30,18), 0)
-        #     elif math.degrees(self.angle) == 90:
-        #         canvas.draw_image(self.sawSprite, (15, 9), (30, 18), (self.pos.x - 9, self.pos.y), (30, 18), math.radians(-90))
-        #     elif math.degrees(self.angle) == 0:
-        #         canvas.draw_image(self.sawSprite, (15,9), (30,18), (self.pos.x, self.pos.y + 9), (30,18), math.radians(180))
-        #     elif math.degrees(self.angle) == -90:
-        #         canvas.draw_image(self.sawSprite, (15, 9), (30, 18), (self.pos.x + 9, self.pos.y), (30, 18), math.radians(90))
-
 
 
 class lives:
@@ -1072,8 +1063,10 @@ class score:
 
 
 class Game:
-    def __init__(self):
-        self.frame = simplegui.create_frame('Game', 1280, 720)
+    def __init__(self, firstStart=True):
+        if firstStart:
+            self.frame = simplegui.create_frame('Game', 1280, 720)
+            self.button = self.frame.add_button("Start", self.button_handler, 200)
         self.rightPlayersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/walkSpritesheet.png",1,8)
         self.heartimg = simplegui.load_image("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/heart.png")
         self.leftPlayersheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/refs/heads/main/newLeftSpritewalksheet.png", 1, 8)
@@ -1099,7 +1092,6 @@ class Game:
         self.lifesystem = lives(self.heartimg)
         self.scoresystem = score(self.singleCoin)
         self.player = Player(Vector(100, 20), self.rightPlayersheet, self.leftPlayersheet, self.attack1RightPlayersheet, self.attack1LeftPlayersheet)
-        self.button = self.frame.add_button("Start", self.button_handler, 200)
         self.frame.set_draw_handler(self.draw)
         self.frame.set_keydown_handler(self.kbd.keyDown)
         self.frame.set_keyup_handler(self.kbd.keyUp)
@@ -1111,7 +1103,7 @@ class Game:
         ]
 
         self.projectiles = [
-            projectile(Vector(300, 50), "arrow",self.arrow, -1, self.player, (14,3.5), (28,7)),
+            # projectile(Vector(300, 50), "arrow",self.arrow, -1, self.player, (14,3.5), (28,7)),
             projectile(Vector(300, 530), "coin", self.singleCoin, 1, self.player, (8,8), (16,16)),
             projectile(Vector(350, 510), "key", self.keySprite, 1, self.player, (8, 14), (16, 28))
 
@@ -1164,6 +1156,12 @@ class Game:
         self.saws.append(saw(Vector(250,80), self.polygon_edges[4], self.sawSprite))
         '''HERE'''
 
+    def restart(self):
+        self.__init__(firstStart=False)
+        self.gamestart()
+        return
+
+
     def gamestart(self):
         self.frame.start()
 
@@ -1174,6 +1172,9 @@ class Game:
         elif self.gameState == "game":
             self.gameState = "mainMenu"
             self.button.set_text("Start")
+        elif self.gameState == "dead":
+            self.button.set_text("Start")
+            self.restart()
 
     def keyboardUpdate(self):
         if self.kbd.right:
@@ -1210,6 +1211,10 @@ class Game:
             canvas.draw_text('Mystic Flare', (470, 300), 50, 'Red')
             canvas.draw_text('Press Start', (540, 350), 28, 'Red')
 
+        elif self.gameState == "dead":
+            self.frame.set_canvas_background("black")
+            canvas.draw_text('You Died', (470, 300), 50, 'Red')
+            canvas.draw_text('Press Menu to go back to main menu', (540, 350), 28, 'Red')
         elif self.gameState == "game":
             canvas.draw_image(self.lvl1image, (640, 360), (1280, 720), (640, 360), (1280, 720))
             self.interaction.draw(canvas)
@@ -1254,7 +1259,8 @@ class Game:
                 saw.update(self.polygon_edges)
                 saw.draw(canvas)
 
-
+            if self.lifesystem.currentlives <= 0:
+                self.gameState = "dead"
 
                                                             ####HERE########
 
