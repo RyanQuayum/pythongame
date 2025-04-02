@@ -226,8 +226,6 @@ class Player:
                                      self.attackRightSpriteSheet.spriteWidthHeight[1])
                 canvas.draw_image(self.attackLeftSpriteSheet.img, (centrex, centrey), width_height_dest, self.pos.get_p(), width_height_dest)
 
-
-
         elif state == "walkRight":
             centrex = (self.rightSpritesheet.spriteFrame[0] + 0.5) * self.rightSpritesheet.spriteWidthHeight[0]
             centrey = (self.rightSpritesheet.spriteFrame[1] + 0.5) * self.rightSpritesheet.spriteWidthHeight[1]
@@ -503,7 +501,11 @@ class inviswall:
         self.bottomright = Vector(xcorner + width, ycorner + height)
 
     def draw(self, canvas):
-        canvas.draw_polygon([(self.xcorner, self.ycorner), (self.xcorner + self.width, self.ycorner), (self.xcorner + self.width, self.ycorner + self.height), (self.xcorner, self.ycorner + self.height)], 1, 'Red')
+        canvas.draw_polygon([(self.xcorner, self.ycorner),
+                             (self.xcorner + self.width, self.ycorner),
+                             (self.xcorner + self.width, self.ycorner + self.height),
+                             (self.xcorner, self.ycorner + self.height)],
+                              1, 'Red')
 
 
 
@@ -569,12 +571,12 @@ class interaction:
         if (playerRightOffset > poly.xcorner and playerLeftOffset < poly.right) and (
                 playerBottomOffset <= poly.top+5 and playerBottomOffset >= poly.top-5):
             self.player.grounded = True
-            # Place player on top of the platform and stop downward movement (y velocity)
-            player.pos.y = poly.top - 32  # Adjust position to rest on platform
-            player.vel.y = 0  # Stop downward velocity (gravity)
+            # Place player on top of the platform and stop downward movement (vel.y = 0)
+            player.pos.y = poly.top - 32  # Adjust position to rest on platform (centre + offset above platform top)
+            player.vel.y = 0  # Stop downward movement
             return True  # Collision detected
         else:
-            return False  # No collision
+            return False  # Nada collision
 
 
 
@@ -630,7 +632,6 @@ class interaction:
         overlapX = poly.halfwidth - abs(distanceX)
         overlapY = poly.halfheight - abs(distanceY)
 
-
         if overlapX < overlapY:
             if distanceX > 0:
                 return "right"
@@ -672,6 +673,9 @@ class interaction:
         for interact in self.interactables:
             if self.is_colliding(interact):
                 self.interactableCollision(interact, self.player, self.lifesystem, self.scoresystem)
+                if self.interactableCollision(interact, self.player, self.lifesystem, self.scoresystem) == "levelFinish":
+                    return "levelFinish"
+
 
  # Gravity effect (pull down)
         if self.kbd.space:
@@ -781,6 +785,10 @@ class interaction:
                 player.vel.x = (-player.vel.x * 1.5)
                 print("on spike")
                 lifesystem.damage() # Add spritesheet for spikes appearing
+
+            elif interact.name == "finishLevelDoor":
+                if self.player.hasKey:
+                    return "levelFinish"
             return True  # Collision detected
         else:
             return False  # No collision
@@ -1096,6 +1104,7 @@ class Game:
         self.frame.set_keydown_handler(self.kbd.keyDown)
         self.frame.set_keyup_handler(self.kbd.keyUp)
         self.terrain_spritesheet = Spritesheet("https://raw.githubusercontent.com/RyanQuayum/pythongame/main/forest-2.png",10,40)
+        self.level = 1
 
         self.enemies = [
              enemy(Vector(70, 172), self.skeletonWalkRight, self.skeletonWalkLeft, self.skeletonAttackRight, self.skeletonAttackLeft, self.skeletonIdleRight, self.skeletonLeftIdle, self.skeletonDeadRight, self.skeletonDeadLeft, self.skeletonHitRight, self.skeletonHitLeft, 18),
@@ -1115,8 +1124,7 @@ class Game:
         self.saws = [
 
         ]
-
-        polygon_positions = [
+        self.lvl1polys = [
             (0, 80, 125, 30),
             (225, 80, 180, 30),
             (405, 0, 30, 240),
@@ -1130,20 +1138,44 @@ class Game:
             (530, 162, 35, 15),
             (405, 225, 70, 15),
             (965, 310, 315, 30),
-            (917, 468, 370, 30)
+            (917, 468, 370, 30),
+            (225, 695, 650, 30)
+        ]
+
+        self.lvl2polys = [(0, 360, 1280, 100)
+        ]
+
+        self.polygon_positions = [
+            (0, 80, 125, 30),
+            (225, 80, 180, 30),
+            (405, 0, 30, 240),
+            (0, 207, 190, 30),
+            (250, 308, 315, 155),
+            (200, 550, 400, 30),
+            (0, 720, 1280, 10),
+            (595, 162, 380, 30),
+            (568, 0, 28, 75),
+            (568, 162, 28, 380),
+            (530, 162, 35, 15),
+            (405, 225, 70, 15),
+            (965, 310, 315, 30),
+            (917, 468, 370, 30),
+            (225, 695, 650, 30)
 
         ]
 
         self.polygon_edges = []
 
-        interactable_positions = [
-            (360, 40, 50, 40, "saw"),
+        self.interactable_positions = [
+            (450, 655, 50, 40, "spike"),
             (217, 310, 30, 220, "ladder"),
+            (233, 630, 67, 62, "finishLevelDoor"),
+
 
         ]
 
-        self.polygons = [inviswall(xcorner, ycorner, width, height) for xcorner, ycorner, width, height in polygon_positions]
-        self.interactables = [interactable(xcorner, ycorner, width, height, name) for xcorner, ycorner, width, height, name in interactable_positions]
+        self.polygons = [inviswall(xcorner, ycorner, width, height) for xcorner, ycorner, width, height in self.polygon_positions]
+        self.interactables = [interactable(xcorner, ycorner, width, height, name) for xcorner, ycorner, width, height, name in self.interactable_positions]
 
         self.interaction = interaction(self.polygons, self.player, self.kbd, self.lifesystem, self.interactables, self.enemies, self.scoresystem, self.projectiles, self.arrow)
 
@@ -1160,6 +1192,17 @@ class Game:
         self.__init__(firstStart=False)
         self.gamestart()
         return
+
+    def levelChange(self):
+        print("Level Change")
+        #reinitalise class
+        # self.level += 1
+        # self.polygon_positions.clear()
+        #
+        # if self.level == 2:
+        #     self.polygon_positions = self.lvl2polys
+        pass
+
 
 
     def gamestart(self):
@@ -1219,6 +1262,8 @@ class Game:
             canvas.draw_image(self.lvl1image, (640, 360), (1280, 720), (640, 360), (1280, 720))
             self.interaction.draw(canvas)
             self.interaction.update()
+            if self.interaction.update() == "levelFinish":
+                self.levelChange()
 
             for polygon in self.polygons:
                 polygon.draw(canvas)
