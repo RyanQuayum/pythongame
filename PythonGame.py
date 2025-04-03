@@ -684,10 +684,10 @@ class interaction:
                 self.player.on_ladder = False
                 self.ladderTimer = 100
 
-        # Jumping: if player is grounded and pressing space, apply upward velocity
+        # Jumping:
             elif self.player.grounded:
-                self.player.vel.y = -20  # Jump velocity (negative to go upwards)
-                self.player.grounded = False  # Prevent double jumping after jump initiation
+                self.player.vel.y = -20  # Jump velocity (negative = upwards)
+                self.player.grounded = False  # Prevent double jumping after initial jump
             else:
                 pass
         # Update player position with velocity
@@ -746,16 +746,20 @@ class interaction:
         playerRightOffset = player.pos.x + 43
         enemyRightOffset = enemy.pos.x + 30
         enemyLeftOffset = enemy.pos.x - 30
+
         if player.playerState == "attack":
             if player.playerDirection == "Right":
 
                 if player.attackFrame == 2:
-                    if (enemyLeftOffset >= playerRightOffset and enemyLeftOffset <= playerRightOffset + 10) or (enemyRightOffset >= playerRightOffset and enemyRightOffset <= enemyRightOffset + 10):
+                    if (enemyLeftOffset <= playerRightOffset and playerRightOffset <= enemyLeftOffset + 35) or \
+                            (enemyLeftOffset >= playerLeftOffset and enemyLeftOffset <= playerLeftOffset + 35):
                         enemy.hit = True
+
             elif player.playerDirection == "Left":
                 if player.attackFrame == 2:
                     if (enemyLeftOffset <= playerLeftOffset and playerLeftOffset <= enemyLeftOffset + 35) or (enemyLeftOffset >= playerRightOffset and enemyLeftOffset <= playerRightOffset + 35):
                         enemy.hit = True
+
 
 
 
@@ -1107,7 +1111,7 @@ class Game:
         self.level = 1
 
         self.enemies = [
-             enemy(Vector(70, 172), self.skeletonWalkRight, self.skeletonWalkLeft, self.skeletonAttackRight, self.skeletonAttackLeft, self.skeletonIdleRight, self.skeletonLeftIdle, self.skeletonDeadRight, self.skeletonDeadLeft, self.skeletonHitRight, self.skeletonHitLeft, 18),
+            enemy(Vector(70, 172), self.skeletonWalkRight, self.skeletonWalkLeft, self.skeletonAttackRight, self.skeletonAttackLeft, self.skeletonIdleRight, self.skeletonLeftIdle, self.skeletonDeadRight, self.skeletonDeadLeft, self.skeletonHitRight, self.skeletonHitLeft, 18),
             rangedEnemy(Vector(900, 130), self.skeletonWalkRight, self.skeletonWalkLeft, self.skeletonAttackRight, self.skeletonAttackLeft, self.skeletonIdleRight, self.skeletonLeftIdle, self.skeletonDeadRight, self.skeletonDeadLeft, self.skeletonHitRight, self.skeletonHitLeft, 18)
         ]
 
@@ -1167,7 +1171,7 @@ class Game:
         self.polygon_edges = []
 
         self.interactable_positions = [
-            (450, 655, 50, 40, "spike"),
+            (700, 665, 50, 30, "spike"),
             (217, 310, 30, 220, "ladder"),
             (233, 630, 67, 62, "finishLevelDoor"),
 
@@ -1246,6 +1250,8 @@ class Game:
         elif self.kbd.attack:
             self.player.playerState = "attack"
         elif not self.kbd.left and not self.kbd.right and not self.player.attackFrame == 0:
+            self.player.playerState = "idle"
+        else:
             self.player.playerState = "idle"
 
     def draw(self, canvas):
